@@ -5342,6 +5342,7 @@
     "scripts": {
         "vscode:prepublish": "npm run compile",
         "vscode:package": "vsce package --no-yarn",
+        "vscode:install": "code --install-extension headwind-2.0.0.vsix",
         "compile": "tsc -p ./",
         "lint": "tslint ./src/*.ts",
         "watch": "tsc -watch -p ./",

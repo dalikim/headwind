@@ -1,4 +1,5 @@
 import { LangConfig } from './extension';
+import { TAILWIND_MODIFIERS } from './tailwindModifiers';
 
 export interface Options {
 	shouldRemoveDuplicates: boolean;
@@ -43,21 +44,58 @@ export const sortClassString = (
 	return classArray.join(options.replacement || ' ').trim();
 };
 
+
+const isTailwindClass = (el: string, sortOrder: string[]) => sortOrder.indexOf(el) !== -1
+const isTailwindModifierClass = (el: string, sortOrder: string[]) => el.includes(':') && TAILWIND_MODIFIERS.indexOf(el.split(':')[0]) !== -1 && sortOrder.indexOf(el.split(':')[1]) !== -1
+const isCustomModifierClass = (el: string, sortOrder: string[]) => el.includes(':') && TAILWIND_MODIFIERS.indexOf(el.split(':')[0]) === -1 && sortOrder.indexOf(el.split(':')[1]) === -1
+
 const sortClassArray = (
 	classArray: string[],
 	sortOrder: string[],
 	shouldPrependCustomClasses: boolean
-): string[] => [
-	...classArray.filter(
-		(el) => shouldPrependCustomClasses && sortOrder.indexOf(el) === -1
-	), // append the classes that were not in the sort order if configured this way
-	...classArray
-		.filter((el) => sortOrder.indexOf(el) !== -1) // take the classes that are in the sort order
-		.sort((a, b) => sortOrder.indexOf(a) - sortOrder.indexOf(b)), // and sort them
-	...classArray.filter(
-		(el) => !shouldPrependCustomClasses && sortOrder.indexOf(el) === -1
-	), // prepend the classes that were not in the sort order if configured this way
-];
+): string[] => {
+	const [tailwindNormalsClasses, tailwindModifiersClasses, customNormalsClasses, customModifiersClasses] = [
+		classArray.filter(
+			(el) => isTailwindClass(el, sortOrder)
+		),
+		classArray.filter(
+			(el) => isTailwindModifierClass(el, sortOrder)
+		),
+		classArray.filter(
+			(el) => !isTailwindClass(el, sortOrder) && !isTailwindModifierClass(el, sortOrder)
+		),
+		classArray.filter(
+			(el) => isCustomModifierClass(el, sortOrder)
+		),
+	]
+
+	/**
+	 * This array contains the classes with tailwind modifiers, sorted first by modifiers
+	 * and then by the sort in sortOrder:
+	 *
+	 * input: "xl:mx-6 lg:mx-4 sm:bg-gray-200 hover:bg-blue-100 lg:bg-gray-400 hover:text-blue-100 xl:bg-gray-600 sm:mx-2"
+	 * output: "hover:text-blue-100 hover:bg-blue-100 sm:mx-2 sm:bg-gray-200 lg:mx-4 lg:bg-gray-400 xl:mx-6 xl:bg-gray-600"
+	 *
+	 * The Tailwind modifier order is defined in ./tailwindModifiers.ts
+	 */
+	const sortedTailwindModifiersClasses = TAILWIND_MODIFIERS
+		.map((modifier) =>
+			tailwindModifiersClasses.filter((el) => el.split(':')[0] === modifier)
+		)
+		.map((tailwindModifierClass) => tailwindModifierClass.sort((a, b) => sortOrder.indexOf(a.split(':')[1]) - sortOrder.indexOf(b.split(':')[1])))
+		.reduce((allSortedTailwindModifiersClasses, sortedTailwindModifiersClasses) => {
+			return allSortedTailwindModifiersClasses.concat(sortedTailwindModifiersClasses)
+		}, [])
+
+	return [
+		...(shouldPrependCustomClasses ? customNormalsClasses : []),
+		...tailwindNormalsClasses.sort((a, b) => sortOrder.indexOf(a) - sortOrder.indexOf(b)),
+		...(!shouldPrependCustomClasses ? customNormalsClasses : []),
+		...(shouldPrependCustomClasses ? customModifiersClasses : []),
+		...tailwindModifiersClasses,
+		...(!shouldPrependCustomClasses ? customModifiersClasses : []),
+	]
+}
 
 const removeDuplicates = (classArray: string[]): string[] => [
 	...new Set(classArray),
