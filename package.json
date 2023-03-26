@@ -5341,6 +5341,7 @@
     },
     "scripts": {
         "vscode:prepublish": "npm run compile",
+        "vscode:package": "vsce package --no-yarn",
         "compile": "tsc -p ./",
         "lint": "tslint ./src/*.ts",
         "watch": "tsc -watch -p ./",
@@ -5358,7 +5359,8 @@
         "ts-jest": "^24.1.0",
         "ts-node": "^8.5.2",
         "tslint": "^5.16.0",
-        "typescript": "^3.5.1"
+        "typescript": "^5.0.2",
+        "vsce": "^2.15.0"
     },
     "dependencies": {
         "rustywind": "^0.7.1"
